@@ -1,0 +1,11 @@
+{
+  "name": "fireblocks-seismic-poc",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@fireblocks/ts-sdk": "latest",
+    "seismic-viem": "1.1.0",
+    "viem": "^2.21.0"
+  }
+}
