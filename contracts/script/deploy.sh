@@ -6,9 +6,9 @@ if [ -f ../.env ]; then
   source ../.env
 fi
 
-RPC_URL="${SEISMIC_RPC_URL:-https://node-2.seismicdev.net/rpc}"
+RPC_URL="${SEISMIC_RPC_URL:-https://gcp-2.seismictest.net/rpc}"
 
-echo "Deploying TestSRC20 to Seismic..."
+echo "Deploying TestSRC20 to Seismic Testnet..."
 echo "RPC: $RPC_URL"
 
 sforge script script/Deploy.s.sol:Deploy \
