@@ -5,6 +5,8 @@ import {
   getShieldedContract,
   seismicDevnet2,
 } from "seismic-viem";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 
 import { TestSRC20Abi } from "./abi.js";
 
@@ -14,17 +16,27 @@ export interface SeismicConfig {
   contractAddress?: Address;
 }
 
+function loadContractAddress(): Address | undefined {
+  try {
+    const deployJsonPath = resolve("../contracts/out/deploy.json");
+    const deployData = JSON.parse(readFileSync(deployJsonPath, "utf8"));
+    console.log("Deploy address:", deployData.TestSRC20);
+    return deployData.TestSRC20 as Address;
+  } catch (error) {
+    // File doesn't exist or is invalid - return undefined
+    return undefined;
+  }
+}
+
 export function loadSeismicConfig(): SeismicConfig {
   const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY as Hex;
   if (!deployerPrivateKey) throw new Error("DEPLOYER_PRIVATE_KEY is required");
 
   return {
     rpcUrl:
-      process.env.SEISMIC_RPC_URL ?? "https://node-2.seismicdev.net/rpc",
+      process.env.SEISMIC_RPC_URL ?? "https://gcp-2.seismictest.net/rpc",
     deployerPrivateKey,
-    contractAddress: (process.env.SRC20_CONTRACT_ADDRESS || undefined) as
-      | Address
-      | undefined,
+    contractAddress: loadContractAddress(),
   };
 }
 

@@ -85,9 +85,9 @@ async function main() {
   const contractAddress = seismicConfig.contractAddress;
   if (!contractAddress) {
     fail(
-      "SRC20_CONTRACT_ADDRESS not set. Deploy first with: bun run deploy:src20",
+      "TestSRC20 contract not found. Deploy first with: bun run deploy:src20",
     );
-    info("Set SRC20_CONTRACT_ADDRESS in .env and re-run.");
+    info("This will create contracts/out/deploy.json with the contract address.");
     process.exit(1);
   }
 

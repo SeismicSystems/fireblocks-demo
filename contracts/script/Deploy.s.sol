@@ -7,7 +7,8 @@ import {TestSRC20} from "../src/TestSRC20.sol";
 
 contract Deploy is Script {
     function run() public {
-        uint256 deployerPrivkey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+        string memory privkeyStr = vm.envString("DEPLOYER_PRIVATE_KEY");
+        uint256 deployerPrivkey = vm.parseUint(privkeyStr);
         address deployer = vm.addr(deployerPrivkey);
 
         vm.startBroadcast(deployerPrivkey);
