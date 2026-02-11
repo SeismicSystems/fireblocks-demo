@@ -44,7 +44,7 @@ FIREBLOCKS_VAULT_ACCOUNT_ID=0
 
 # Seismic Configuration  
 SEISMIC_RPC_URL=https://gcp-1.seismictest.net/rpc
-DEPLOYER_PRIVATE_KEY=your_private_key_without_0x_prefix
+DEPLOYER_PRIVATE_KEY=your_private_key
 
 # Demo Configuration (optional)
 DEMO_RECIPIENT_ADDRESS=0xe01D202671F158524b2f0A763eFE34892639Acf9
