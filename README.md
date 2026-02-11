@@ -143,6 +143,17 @@ The demo performs 9 checks to validate the Fireblocks × Seismic integration:
 - Reads the new encrypted balance and calculates the delta
 - Verifies the delta matches the transfer amount (1 ETH)
 
+### Step 9: Decrypt Transaction Calldata
+
+**What it does**: Fetches the submitted transaction and decrypts its calldata to verify end-to-end encryption.
+
+**Under the hood**:
+1. Fetches the transaction by hash from the Seismic network
+2. Extracts the encrypted `suint256` parameter from the calldata (function selector and address remain unencrypted)
+3. Decrypts the parameter using the Fireblocks-derived AES key (derived via `HKDF(ECDH(encryptionSk, network_tee_pubkey))`)
+4. Reconstructs the plaintext calldata and compares with the original to verify integrity
+5. The encrypted format: `[12-byte IV][32-byte ciphertext][16-byte auth tag]`
+
 ## Project Structure
 
 ```
@@ -157,7 +168,8 @@ poc/
 │   └── seismic/
 │       ├── client.ts               # Seismic wallet client with encryption key
 │       ├── calldata.ts             # transfer(address,suint256) calldata construction
-│       └── transaction.ts          # Shielded transaction submission
+│       ├── transaction.ts          # Shielded transaction submission
+│       └── transaction-decryption.ts # Transaction calldata decryption utilities
 ├── tsconfig.json                   # TypeScript config with @/poc/* path aliases
 └── package.json                    # Dependencies and scripts
 
@@ -192,8 +204,9 @@ When successful, the demo will show:
   [PASS] Deterministic key derivation
   [PASS] Encrypt/decrypt roundtrip
   [PASS] Shielded transaction
-  
-  All core checks passed.
+  [PASS] Transaction calldata decryption
+
+All core checks passed.
 ```
 
 This confirms that Fireblocks-derived keys can be used for deterministic Seismic encryption.

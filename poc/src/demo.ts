@@ -19,6 +19,12 @@ import {
   submitShieldedTransaction,
   waitForReceipt,
 } from "@/poc/seismic/transaction";
+import {
+  fetchTransaction,
+  extractEncryptedCalldata,
+  decryptCalldataParameter,
+  reconstructPlaintextCalldata,
+} from "@/poc/seismic/transaction-decryption";
 
 // Demo configuration
 const DEMO_RECIPIENT = "0xe01D202671F158524b2f0A763eFE34892639Acf9" as Address;
@@ -135,12 +141,57 @@ async function main() {
     log(`Final balance: ${finalBalance.toString()}`);
     log(`Delta: ${delta.toString()} (expected: ${DEMO_AMOUNT.toString()})`);
 
+    // Step 9: Decrypt transaction calldata
+    step(9, "Decrypt transaction calldata");
+
+    // 1. Fetch the submitted transaction by hash
+    log(`Fetching transaction: ${txHash}`);
+    const transaction = await fetchTransaction(fbPoweredClient, txHash);
+    log(`Transaction found in block ${transaction.blockNumber}`);
+    log(`\nFull transaction object:`);
+    console.log(JSON.stringify(transaction, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    , 2));
+    log(`\nRaw transaction input: ${transaction.input}`);
+    log(`Input length: ${transaction.input.length} chars (${(transaction.input.length - 2) / 2} bytes)`);
+
+    // 2. Extract encrypted portions from calldata
+    const { selector, unencryptedParams, encryptedData } =
+      extractEncryptedCalldata(transaction.input);
+
+    log(`Function selector: ${selector}`);
+    log(`Unencrypted params (address): ${unencryptedParams}`);
+    log(
+      `Encrypted data length: ${encryptedData.length} chars (${(encryptedData.length - 2) / 2} bytes)`,
+    );
+
+    // 3. Decrypt the suint256 parameter using the derived AES key
+    // The key was derived via: aes_key = HKDF(ECDH(encryptionSk, network_tee_pubkey))
+    const decryptedAmount = await decryptCalldataParameter(
+      derivedKey1,
+      encryptedData,
+    );
+
+    log(`Decrypted amount: ${decryptedAmount.toString()}`);
+
+    // 4. Verify decrypted amount matches expected
+    if (decryptedAmount !== DEMO_AMOUNT) {
+      throw new Error(
+        `Amount mismatch: expected ${DEMO_AMOUNT}, got ${decryptedAmount}`,
+      );
+    }
+    
+    log("✓ Calldata decryption successful!");
+    log(`Expected amount: ${DEMO_AMOUNT.toString()}`);
+    log(`Decrypted matches: ${decryptedAmount === DEMO_AMOUNT}`);
+
     // Summary
     header("Demo Complete - Results Summary");
     log("[PASS] Signature caching");
     log("[PASS] Deterministic key derivation");
     log("[PASS] Encrypt/decrypt roundtrip");
     log("[PASS] Shielded transaction");
+    log("[PASS] Transaction calldata decryption");
     log("");
     log("All core checks passed.");
   } catch (error) {
