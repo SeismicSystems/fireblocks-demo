@@ -54,6 +54,7 @@ DEPLOYER_PRIVATE_KEY=your_private_key
 
 # Demo
 DEMO_RECIPIENT_ADDRESS=0xe01D202671F158524b2f0A763eFE34892639Acf9
+# in wei
 DEMO_TRANSFER_AMOUNT=1000000000000000000
 ```
 
@@ -83,37 +84,51 @@ bun run src20:demo
 
 The demo performs 9 steps:
 
-### Step 1: Connect to Seismic Network
+### Step 1: [Connect to Seismic Testnet](poc/src/demo.ts#L64-L75)
 Connects to Seismic Testnet and verifies the deployed SRC20 contract.
+- [`createSeismicClient()`](poc/src/seismic/client.ts#L49-L71)
+- [`loadContractAddress()`](poc/src/seismic/client.ts#L19-L29)
 
-### Step 2: Read Initial Balance
+### Step 2: [Read Initial Balance](poc/src/demo.ts#L77-L80)
 Reads the encrypted SRC20 balance using signed read functionality.
+- [`readBalance()`](poc/src/seismic/client.ts#L88-L96)
 
-### Step 3: Validate Signature Caching
+### Step 3: [Validate Signature Caching](poc/src/demo.ts#L82-L93)
 Verifies that Fireblocks returns identical signatures for the same message, enabling deterministic key derivation.
+- [`validateSignatureCaching()`](poc/src/fireblocks/signer.ts#L81-L107)
+- [`signRawMessage()`](poc/src/fireblocks/signer.ts#L19-L75)
 
-### Step 4: Derive Encryption Key
+### Step 4: [Derive Encryption Key](poc/src/demo.ts#L95-L103)
 Derives deterministic encryption keys from Fireblocks signatures using SHA-256.
+- [`deriveKeyFromSignature()`](poc/src/crypto/key-derivation.ts#L8-L17)
 
-### Step 5: Create Seismic Client
+### Step 5: [Create Seismic Client](poc/src/demo.ts#L105-L110)
 Creates a Seismic client configured with the Fireblocks-derived encryption key.
+- [`createSeismicClient()`](poc/src/seismic/client.ts#L49-L71)
 
-### Step 6: Test Encrypt/Decrypt
+### Step 6: [Test Encrypt/Decrypt](poc/src/demo.ts#L112-L121)
 Tests local AES-GCM encryption/decryption roundtrip with the derived key.
+- [`buildTransferCalldata()`](poc/src/seismic/calldata.ts#L9-L13)
+- [`encrypt()`](poc/src/crypto/key-derivation.ts#L31-L53)
+- [`decrypt()`](poc/src/crypto/key-derivation.ts#L55-L68)
 
-### Step 7: Submit Shielded Transaction
+### Step 7: [Submit Shielded Transaction](poc/src/demo.ts#L123-L134)
 Submits an encrypted SRC20 transfer transaction to Seismic.
+- [`submitShieldedTransaction()`](poc/src/seismic/transaction.ts#L16-L24)
+- [`waitForReceipt()`](poc/src/seismic/transaction.ts#L26-L35)
 
-### Step 8: Verify Balance Change
+### Step 8: [Verify Balance Change](poc/src/demo.ts#L136-L143)
 Confirms the transaction executed correctly by checking the balance change.
 
-### Step 9: Decrypt Transaction Calldata
+### Step 9: [Decrypt Transaction Calldata](poc/src/demo.ts#L145-L168)
 Fetches the submitted transaction and decrypts its calldata client-side:
-- Fetches network TEE public key dynamically
-- Derives AES key via `ECDH(encryptionSk, network_TEE_pubkey) + HKDF-SHA256`
-- Constructs AAD by RLP-encoding transaction metadata (sender, chainId, nonce, to, value, encryptionPubkey, encryptionNonce, messageVersion, recentBlockHash, expiresAtBlock, signedRead)
-- Decrypts entire calldata using AES-256-GCM with AAD
-- Verifies decrypted calldata matches original
+- [`fetchTransaction()`](poc/src/seismic/transaction-decryption.ts#L28-L36) - Retrieves transaction from network
+- [`decryptTransactionInput()`](poc/src/seismic/transaction-decryption.ts#L112-L148) - Performs decryption:
+  - Fetches network TEE public key dynamically via `client.getTeePublicKey()`
+  - Derives AES key via `ECDH(encryptionSk, network_TEE_pubkey) + HKDF-SHA256`
+  - [`constructAAD()`](poc/src/seismic/transaction-decryption.ts#L59-L108) - RLP-encodes transaction metadata
+  - Decrypts entire calldata using AES-256-GCM with AAD
+  - Verifies decrypted calldata matches original
 
 **Note:** In Seismic, the entire calldata is encrypted (not just `suint256` parameters). The AAD includes transaction metadata to ensure both confidentiality and authenticity.
 
@@ -163,6 +178,6 @@ All core checks passed.
 ## Resources
 
 - [Fireblocks API Documentation](https://developers.fireblocks.com/)
-- [Seismic Network Documentation](https://docs.seismic.systems/)
+- [Seismic Documentation](https://docs.seismic.systems/)
 - [Seismic Client Documentation](https://client.seismic.systems/)
 - [Seismic Foundry Installation](https://docs.seismic.systems/getting-started/installation)
