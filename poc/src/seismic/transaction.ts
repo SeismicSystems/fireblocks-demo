@@ -19,7 +19,7 @@ export async function submitShieldedTransaction(
   to: Address,
   amount: bigint,
 ): Promise<Hex> {
-  const contract = getTokenContract(client, contractAddress) as any;
+  const contract = getTokenContract(client, contractAddress);
   return await contract.write.transfer([to, amount]);
 }
 

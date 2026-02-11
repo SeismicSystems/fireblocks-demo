@@ -149,9 +149,8 @@ async function main() {
     log(`Transaction found in block ${transaction.blockNumber}`);
 
     // Decrypt the transaction calldata using the Fireblocks-derived encryption key.
-    // This demonstrates that historical transactions can be decrypted client-side
-    // by anyone with access to the encryption private key.
     const decryptedCalldata = await decryptTransactionInput(
+      fbPoweredClient,
       derivedKey1,
       transaction,
     );
