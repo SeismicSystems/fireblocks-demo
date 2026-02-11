@@ -15,8 +15,7 @@ export function loadFireblocksConfig(): FireblocksConfig {
   const vaultAccountId = process.env.FIREBLOCKS_VAULT_ACCOUNT_ID ?? "0";
 
   if (!apiKey) throw new Error("FIREBLOCKS_API_KEY is required");
-  if (!secretKeyPath)
-    throw new Error("FIREBLOCKS_SECRET_KEY_PATH is required");
+  if (!secretKeyPath) throw new Error("FIREBLOCKS_SECRET_KEY_PATH is required");
 
   return { apiKey, secretKeyPath, basePath, vaultAccountId };
 }
@@ -63,5 +62,7 @@ export async function pollTransaction(
     await Bun.sleep(pollIntervalMs);
   }
 
-  throw new Error(`Transaction ${txId} polling timed out after ${maxAttempts} attempts`);
+  throw new Error(
+    `Transaction ${txId} polling timed out after ${maxAttempts} attempts`,
+  );
 }

@@ -8,7 +8,7 @@ import {
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-import { TestSRC20Abi } from "./abi.js";
+import { TestSRC20Abi } from "@/poc/seismic/abi";
 
 export interface SeismicConfig {
   rpcUrl: string;
@@ -33,14 +33,16 @@ export function loadSeismicConfig(): SeismicConfig {
   if (!deployerPrivateKey) throw new Error("DEPLOYER_PRIVATE_KEY is required");
 
   return {
-    rpcUrl:
-      process.env.SEISMIC_RPC_URL ?? "https://gcp-2.seismictest.net/rpc",
+    rpcUrl: process.env.SEISMIC_RPC_URL ?? "https://gcp-2.seismictest.net/rpc",
     deployerPrivateKey,
     contractAddress: loadContractAddress(),
   };
 }
 
-export async function createSeismicClient(config: SeismicConfig, encryptionSk?: Hex) {
+export async function createSeismicClient(
+  config: SeismicConfig,
+  encryptionSk?: Hex,
+) {
   const account = privateKeyToAccount(config.deployerPrivateKey);
 
   const chain: Chain = {
@@ -58,7 +60,7 @@ export async function createSeismicClient(config: SeismicConfig, encryptionSk?: 
 
   // Use Fireblocks-derived encryption key if provided
   if (encryptionSk) {
-    console.log("🔑 Creating Seismic client with Fireblocks-derived encryption key");
+    // Create Seismic client with Fireblocks-derived encryption key
     clientConfig.encryptionSk = encryptionSk;
   }
 

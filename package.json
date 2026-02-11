@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["poc"],
+  "workspaces": [
+    "poc"
+  ],
   "scripts": {
     "src20:demo": "bun run poc/src/demo.ts",
     "deploy:src20": "cd contracts && ./script/deploy.sh",
@@ -11,5 +13,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.3.8"
+  },
+  "dependencies": {
+    "prettier": "^3.8.1"
   }
 }

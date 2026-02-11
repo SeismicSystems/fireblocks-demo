@@ -17,7 +17,8 @@ export async function encrypt(
 ): Promise<EncryptedPayload> {
   const key = await importAesKey(keyHex);
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES));
-  const data = typeof plaintext === "string" ? hexToBytes(plaintext) : plaintext;
+  const data =
+    typeof plaintext === "string" ? hexToBytes(plaintext) : plaintext;
 
   const ciphertextBuf = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },

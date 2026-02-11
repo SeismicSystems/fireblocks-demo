@@ -1,5 +1,5 @@
 import { Fireblocks, PeerType, TransactionOperation } from "@fireblocks/ts-sdk";
-import { pollTransaction } from "./client.js";
+import { pollTransaction } from "@/poc/fireblocks/client";
 
 export interface RawSignatureResult {
   r: string;
