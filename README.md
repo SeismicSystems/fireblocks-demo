@@ -205,9 +205,6 @@ bun run src20:deploy
 # Run the integration demo
 bun run src20:demo
 
-# Run tests (if any)
-bun test
-```
 
 ## Expected Output
 
