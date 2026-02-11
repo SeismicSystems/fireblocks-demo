@@ -40,6 +40,15 @@ const TERMINAL_STATUSES = new Set([
   "CANCELLED",
 ]);
 
+/**
+ * Polls a Fireblocks transaction until it reaches a terminal status.
+ *
+ * @param client - Fireblocks SDK client instance
+ * @param txId - Transaction ID to poll
+ * @param pollIntervalMs - Polling interval in milliseconds
+ * @param maxAttempts - Maximum number of polling attempts
+ * @returns Completed transaction response
+ */
 export async function pollTransaction(
   client: Fireblocks,
   txId: string,

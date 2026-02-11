@@ -39,6 +39,13 @@ export function loadSeismicConfig(): SeismicConfig {
   };
 }
 
+/**
+ * Creates a Seismic shielded wallet client.
+ *
+ * @param config - Seismic network configuration
+ * @param encryptionSk - Optional encryption private key for deterministic calldata encryption
+ * @returns Shielded wallet client instance
+ */
 export async function createSeismicClient(
   config: SeismicConfig,
   encryptionSk?: Hex,
@@ -58,9 +65,7 @@ export async function createSeismicClient(
     transport: http(config.rpcUrl),
   };
 
-  // Use Fireblocks-derived encryption key if provided
   if (encryptionSk) {
-    // Create Seismic client with Fireblocks-derived encryption key
     clientConfig.encryptionSk = encryptionSk;
   }
 
@@ -81,9 +86,6 @@ export function getTokenContract(
   });
 }
 
-/**
- * Read the caller's own balance via signed read.
- */
 export async function readBalance(
   client: Awaited<ReturnType<typeof createSeismicClient>>,
   contractAddress: Address,

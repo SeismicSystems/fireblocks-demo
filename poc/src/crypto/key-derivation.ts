@@ -4,6 +4,9 @@ import { RawSignatureResult } from "@/poc/fireblocks/signer";
 /**
  * Derives a deterministic encryption key from a Fireblocks signature.
  * Uses SHA-256 to ensure consistent key generation from cached signatures.
+ *
+ * @param signature - Fireblocks raw signature result
+ * @returns Hex-encoded SHA-256 hash of the signature
  */
 export async function deriveKeyFromSignature(
   signature: RawSignatureResult,
@@ -15,10 +18,7 @@ export async function deriveKeyFromSignature(
   return bytesToHex(hash);
 }
 
-/**
- * Imports an AES key for use with Web Crypto API.
- */
-export async function importAesKey(keyHex: Hex): Promise<CryptoKey> {
+async function importAesKey(keyHex: Hex): Promise<CryptoKey> {
   const keyBytes = hexToBytes(keyHex);
   return crypto.subtle.importKey(
     "raw",
@@ -29,9 +29,6 @@ export async function importAesKey(keyHex: Hex): Promise<CryptoKey> {
   );
 }
 
-/**
- * Encrypts data using AES-GCM with the provided key and IV.
- */
 export async function encrypt(
   keyHex: Hex,
   plaintext: Hex,
@@ -52,9 +49,6 @@ export async function encrypt(
   };
 }
 
-/**
- * Decrypts AES-GCM encrypted data.
- */
 export async function decrypt(
   keyHex: Hex,
   encrypted: { ciphertext: Hex; iv: Hex },

@@ -1,4 +1,4 @@
-import { type Address, bytesToHex } from "viem";
+import { type Address } from "viem";
 import {
   loadFireblocksConfig,
   createFireblocksClient,
@@ -104,30 +104,11 @@ async function main() {
 
     // Step 5: Create Fireblocks-powered Seismic client
     step(5, "Create Seismic client with Fireblocks encryption key");
-    log(`Using encryptionSk: ${derivedKey1}`);
-    
-    // Test: What AES key would be generated from this encryptionSk?
-    const { generateAesKey, sharedSecretPoint, sharedKeyFromPoint, deriveAesKey } = await import("seismic-viem");
-    const NETWORK_TEE_PK = "028e76821eb4d77fd30223ca971c49738eb5b5b71eabe93f96b348fdce788ae5a0";
-    
-    // Trace each step of key derivation
-    const sharedSecretBytes = sharedSecretPoint({
-      privateKey: derivedKey1,
-      networkPublicKey: NETWORK_TEE_PK,
-    });
-    log(`Shared secret point: ${bytesToHex(sharedSecretBytes)}`);
-    
-    const sharedKey = sharedKeyFromPoint(sharedSecretBytes);
-    log(`Shared key (compressed): ${sharedKey}`);
-    
-    const testAesKey = deriveAesKey(sharedKey);
-    log(`Test AES key: ${testAesKey}`);
-    
     const fbPoweredClient = await createSeismicClient(
       seismicConfig,
       derivedKey1,
     );
-    log("Seismic client created with Fireblocks-derived encryption key");
+    log("Client created with Fireblocks-derived encryption key");
 
     // Step 6: Test encrypt/decrypt roundtrip
     step(6, "Test encrypt/decrypt roundtrip");
@@ -160,50 +141,31 @@ async function main() {
     log(`Final balance: ${finalBalance.toString()}`);
     log(`Delta: ${delta.toString()} (expected: ${DEMO_AMOUNT.toString()})`);
 
-    // Step 9: Decrypt transaction calldata
-    step(9, "Decrypt transaction calldata");
+    // Step 9: Decrypt and verify transaction calldata
+    step(9, "Decrypt and verify transaction calldata");
 
-    // 1. Fetch the submitted transaction by hash
-    log(`Fetching transaction: ${txHash}`);
+    // Fetch the submitted transaction from the network
     const transaction = await fetchTransaction(fbPoweredClient, txHash);
     log(`Transaction found in block ${transaction.blockNumber}`);
-    log(`Encrypted input: ${transaction.input}`);
-    log(`Encryption nonce: ${transaction.encryptionNonce}`);
-    log(`Encryption pubkey: ${transaction.encryptionPubkey}`);
-    
-    // Debug: Verify the encryption key
-    log(`\nDerived encryption key (derivedKey1): ${derivedKey1}`);
 
-    // 2. Decrypt the entire transaction input using ECDH + HKDF + AES-GCM with AAD
-    // The encryption uses: AES-GCM(HKDF(ECDH(encryptionSk, tx.encryptionPubkey)), nonce, input, AAD)
-    // where AAD = encode(sender, chain_id, tx_nonce, to, value, encryption_pubkey, encryption_nonce, message_version)
-    log(`\n=== Starting decryption ===`);
+    // Decrypt the transaction calldata using the Fireblocks-derived encryption key.
+    // This demonstrates that historical transactions can be decrypted client-side
+    // by anyone with access to the encryption private key.
     const decryptedCalldata = await decryptTransactionInput(
       derivedKey1,
       transaction,
-      true, // Enable debug mode
     );
 
-    log(`Decrypted calldata: ${decryptedCalldata}`);
-
-    // 3. Extract and verify the function selector and parameters
-    const selector = extractFunctionSelector(decryptedCalldata);
-    const params = extractCalldataParams(decryptedCalldata);
-    
-    log(`Function selector: ${selector}`);
-    log(`Parameters: ${params}`);
-
-    // 4. Compare with original plaintext calldata
+    // Verify the decrypted calldata matches the original
     const originalCalldata = buildTransferCalldata(DEMO_RECIPIENT, DEMO_AMOUNT);
-    
-    log(`Original calldata:  ${originalCalldata}`);
-    log(`Decrypted calldata: ${decryptedCalldata}`);
 
-    if (decryptedCalldata.toLowerCase() === originalCalldata.toLowerCase()) {
-      log("✓ Calldata decryption successful - perfect match!");
-    } else {
-      throw new Error("Calldata decryption failed - mismatch!");
+    if (decryptedCalldata.toLowerCase() !== originalCalldata.toLowerCase()) {
+      throw new Error(
+        "Calldata decryption verification failed - mismatch detected",
+      );
     }
+
+    log("Calldata decryption successful - verified match with original");
 
     // Summary
     header("Demo Complete - Results Summary");
