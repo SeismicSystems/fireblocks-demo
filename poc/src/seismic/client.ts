@@ -18,7 +18,7 @@ export interface SeismicConfig {
 
 function loadContractAddress(): Address | undefined {
   try {
-    const deployJsonPath = resolve("../contracts/out/deploy.json");
+    const deployJsonPath = resolve("contracts/out/deploy.json");
     const deployData = JSON.parse(readFileSync(deployJsonPath, "utf8"));
     console.log("Deploy address:", deployData.TestSRC20);
     return deployData.TestSRC20 as Address;
@@ -40,7 +40,7 @@ export function loadSeismicConfig(): SeismicConfig {
   };
 }
 
-export async function createSeismicClient(config: SeismicConfig) {
+export async function createSeismicClient(config: SeismicConfig, encryptionSk?: Hex) {
   const account = privateKeyToAccount(config.deployerPrivateKey);
 
   const chain: Chain = {
@@ -50,11 +50,19 @@ export async function createSeismicClient(config: SeismicConfig) {
     },
   };
 
-  return createShieldedWalletClient({
+  const clientConfig: any = {
     chain,
     account,
     transport: http(config.rpcUrl),
-  });
+  };
+
+  // Use Fireblocks-derived encryption key if provided
+  if (encryptionSk) {
+    console.log("🔑 Creating Seismic client with Fireblocks-derived encryption key");
+    clientConfig.encryptionSk = encryptionSk;
+  }
+
+  return createShieldedWalletClient(clientConfig);
 }
 
 export function getTokenContract(

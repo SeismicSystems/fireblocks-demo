@@ -1,4 +1,4 @@
-import type { Fireblocks } from "@fireblocks/ts-sdk";
+import { Fireblocks, PeerType, TransactionOperation } from "@fireblocks/ts-sdk";
 import { pollTransaction } from "./client.js";
 
 export interface RawSignatureResult {
@@ -35,17 +35,20 @@ export async function signRawMessage(
 
   const { data: tx } = await client.transactions.createTransaction({
     transactionRequest: {
-      assetId: "ETH",
-      operation: "RAW" as any,
+      assetId: "BTC_TEST",
+      note: note ?? "Fireblocks signature caching POC",
       source: {
-        type: "VAULT_ACCOUNT" as any,
+        type: PeerType.VaultAccount,
         id: vaultAccountId,
       },
-      note: note ?? "Fireblocks signature caching POC",
+      operation: TransactionOperation.Raw,
       extraParameters: {
         rawMessageData: {
-          algorithm: "MPC_ECDSA_SECP256K1",
-          messages: [{ content }],
+          messages: [
+            {
+              content,
+            },
+          ],
         },
       },
     },
