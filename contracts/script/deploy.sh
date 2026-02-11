@@ -6,7 +6,7 @@ if [ -f ../.env ]; then
   source ../.env
 fi
 
-RPC_URL="${SEISMIC_RPC_URL:-https://gcp-2.seismictest.net/rpc}"
+RPC_URL="${SEISMIC_RPC_URL:-https://gcp-1.seismictest.net/rpc}"
 
 echo "Deploying TestSRC20 to Seismic Testnet..."
 echo "RPC: $RPC_URL"
@@ -14,7 +14,7 @@ echo "RPC: $RPC_URL"
 DEPLOYER_PRIVATE_KEY="$DEPLOYER_PRIVATE_KEY" sforge script script/Deploy.s.sol:Deploy \
   --rpc-url "$RPC_URL" \
   --broadcast \
-  -vvvv
+  --unsafe-private-storage \
 
 # Parse the broadcast output and create deploy.json
 BROADCAST_OUT="broadcast/Deploy.s.sol/$(cast chain-id --rpc-url $RPC_URL)/run-latest.json"

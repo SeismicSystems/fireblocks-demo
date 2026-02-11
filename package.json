@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "src20:demo": "bun run poc/src/demo.ts",
-    "deploy:src20": "cd contracts && ./script/deploy.sh",
+    "src20:deploy": "cd contracts && ./script/deploy.sh",
     "test": "bun test"
   },
   "devDependencies": {

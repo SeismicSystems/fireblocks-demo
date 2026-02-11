@@ -35,7 +35,7 @@ export const TestSRC20Abi = [
   },
   {
     type: "function",
-    name: "balanceOf",
+    name: "balance",
     inputs: [],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",

@@ -33,7 +33,7 @@ export function loadSeismicConfig(): SeismicConfig {
   if (!deployerPrivateKey) throw new Error("DEPLOYER_PRIVATE_KEY is required");
 
   return {
-    rpcUrl: process.env.SEISMIC_RPC_URL ?? "https://gcp-2.seismictest.net/rpc",
+    rpcUrl: process.env.SEISMIC_RPC_URL ?? "https://gcp-1.seismictest.net/rpc",
     deployerPrivateKey,
     contractAddress: loadContractAddress(),
   };
@@ -91,7 +91,7 @@ export async function readBalance(
   const result = await client.readContract({
     address: contractAddress,
     abi: TestSRC20Abi,
-    functionName: "balanceOf",
+    functionName: "balance",
   });
   return result as bigint;
 }

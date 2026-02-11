@@ -1,6 +1,6 @@
 # Fireblocks × Seismic Integration Demo
 
-This project demonstrates how to integrate **Fireblocks** enterprise key management with **Seismic Network's** privacy-preserving transactions. It showcases deterministic key derivation from Fireblocks signatures for consistent encryption of shielded transactions.
+This project demonstrates how to integrate **Fireblocks** with **Seismic** transactions. It shows deterministic key derivation from Fireblocks signatures for consistent encryption of shielded transactions.
 
 ## Architecture Overview
 
@@ -43,7 +43,7 @@ FIREBLOCKS_BASE_URL=https://sandbox-api.fireblocks.io/v1
 FIREBLOCKS_VAULT_ACCOUNT_ID=0
 
 # Seismic Configuration  
-SEISMIC_RPC_URL=https://gcp-2.seismictest.net/rpc
+SEISMIC_RPC_URL=https://gcp-1.seismictest.net/rpc
 DEPLOYER_PRIVATE_KEY=your_private_key_without_0x_prefix
 
 # Demo Configuration (optional)
@@ -76,11 +76,11 @@ bun run src20:demo
 
 ## Demo Walkthrough
 
-The demo performs 9 comprehensive checks to validate the Fireblocks × Seismic integration:
+The demo performs 9 checks to validate the Fireblocks × Seismic integration:
 
 ### [Step 1: Connect to Seismic Network](poc/src/demo.ts#L50-L60)
 
-**What it does**: Establishes connection to Seismic Testnet and verifies the deployed SRC20 contract.
+**What it does**: Connects to Seismic Testnet and verifies the deployed SRC20 contract.
 
 **Under the hood**: 
 - Creates a [Seismic wallet client](poc/src/seismic/client.ts#L60-L75) using the deployer's private key
@@ -88,7 +88,7 @@ The demo performs 9 comprehensive checks to validate the Fireblocks × Seismic i
 
 ### [Step 2: Read Initial SRC20 Balance](poc/src/demo.ts#L65-L68)
 
-**What it does**: Reads the encrypted SRC20 balance using Seismic's signed read functionality.
+**What it does**: Reads the encrypted SRC20 balance using signed read functionality.
 
 **Under the hood**: 
 - Uses [`readBalance()`](poc/src/seismic/client.ts#L85-L96) which performs an encrypted contract call
@@ -101,7 +101,7 @@ The demo performs 9 comprehensive checks to validate the Fireblocks × Seismic i
 **Under the hood**:
 - Calls [`validateSignatureCaching()`](poc/src/fireblocks/signer.ts#L85-L108) twice with the same seed message
 - Uses Fireblocks' [raw signing API](poc/src/fireblocks/signer.ts#L25-L83) for deterministic signatures
-- **Critical**: This enables deterministic key derivation for consistent encryption
+- This enables deterministic key derivation for consistent encryption
 
 ### [Step 4: Derive Deterministic Encryption Key](poc/src/demo.ts#L81-L88)
 
@@ -121,7 +121,7 @@ The demo performs 9 comprehensive checks to validate the Fireblocks × Seismic i
 
 ### [Step 6: Test Encrypt/Decrypt Roundtrip](poc/src/demo.ts#L97-L105)
 
-**What it does**: Validates local AES-GCM encryption/decryption with the derived key.
+**What it does**: Tests local AES-GCM encryption/decryption with the derived key.
 
 **Under the hood**:
 - Builds [`transfer(address,suint256)` calldata](poc/src/seismic/calldata.ts#L7-L14) with function selector `0xb10c99b5`
@@ -129,7 +129,7 @@ The demo performs 9 comprehensive checks to validate the Fireblocks × Seismic i
 
 ### [Step 7: Submit Shielded SRC20 Transfer](poc/src/demo.ts#L107-L116)
 
-**What it does**: Submits an encrypted transaction to Seismic Network.
+**What it does**: Submits an encrypted transaction to Seismic.
 
 **Under the hood**:
 - [`submitShieldedTransaction()`](poc/src/seismic/transaction.ts#L9-L18) uses the Fireblocks-powered client
@@ -183,7 +183,7 @@ contracts/
 
 ```bash
 # Deploy the SRC20 contract
-bun run deploy:src20
+bun run src20:deploy
 
 # Run the integration demo
 bun run src20:demo
@@ -209,7 +209,7 @@ When successful, the demo will show:
   All core checks passed.
 ```
 
-This confirms that Fireblocks-derived keys can be used for deterministic, auditable Seismic encryption - enabling enterprise-grade key management for privacy-preserving transactions.
+This confirms that Fireblocks-derived keys can be used for deterministic Seismic encryption.
 
 ## Useful Links
 
