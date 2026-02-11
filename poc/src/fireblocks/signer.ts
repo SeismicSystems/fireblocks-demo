@@ -10,11 +10,17 @@ export interface RawSignatureResult {
 }
 
 /**
- * Sign a raw message via Fireblocks MPC.
+ * Signs a raw message via Fireblocks MPC.
  *
  * The message must be a hex-encoded 32-byte hash (64 hex characters).
  * Fireblocks caches signatures: identical content from the same vault
  * yields an identical signature without re-approval.
+ *
+ * @param client - Fireblocks SDK client instance
+ * @param messageHex - Hex-encoded 32-byte message hash
+ * @param vaultAccountId - Fireblocks vault account ID
+ * @param note - Optional transaction note
+ * @returns Signature components (r, s, v) and full signature
  */
 export async function signRawMessage(
   client: Fireblocks,
@@ -75,8 +81,12 @@ export async function signRawMessage(
 }
 
 /**
- * Request the same signature twice and verify caching works.
- * Returns both signatures for comparison.
+ * Requests the same signature twice to verify Fireblocks signature caching.
+ *
+ * @param client - Fireblocks SDK client instance
+ * @param messageHex - Hex-encoded 32-byte message hash
+ * @param vaultAccountId - Fireblocks vault account ID
+ * @returns Object containing both signatures and whether they match
  */
 export async function validateSignatureCaching(
   client: Fireblocks,

@@ -1,9 +1,12 @@
-import { http, type Chain, type Address, type Hex } from "viem";
+import { http, type Chain, type Address, type Hex, type Transport } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   createShieldedWalletClient,
   getShieldedContract,
   seismicDevnet2,
+  type GetSeismicClientsParameters,
+  type ShieldedWalletClient,
+  type ShieldedContract,
 } from "seismic-viem";
 import { readFileSync } from "fs";
 import { resolve } from "path";
@@ -39,10 +42,17 @@ export function loadSeismicConfig(): SeismicConfig {
   };
 }
 
+/**
+ * Creates a Seismic shielded wallet client.
+ *
+ * @param config - Seismic network configuration
+ * @param encryptionSk - Optional encryption private key for deterministic calldata encryption
+ * @returns Shielded wallet client instance
+ */
 export async function createSeismicClient(
   config: SeismicConfig,
   encryptionSk?: Hex,
-) {
+): Promise<ShieldedWalletClient<Transport, Chain>> {
   const account = privateKeyToAccount(config.deployerPrivateKey);
 
   const chain: Chain = {
@@ -52,38 +62,28 @@ export async function createSeismicClient(
     },
   };
 
-  const clientConfig: any = {
+  const clientConfig: GetSeismicClientsParameters<Transport, Chain, typeof account> = {
     chain,
     account,
     transport: http(config.rpcUrl),
+    encryptionSk,
   };
 
-  // Use Fireblocks-derived encryption key if provided
-  if (encryptionSk) {
-    // Create Seismic client with Fireblocks-derived encryption key
-    clientConfig.encryptionSk = encryptionSk;
-  }
-
-  return createShieldedWalletClient(clientConfig);
+  const client = await createShieldedWalletClient(clientConfig);
+  return client as ShieldedWalletClient<Transport, Chain>;
 }
 
 export function getTokenContract(
-  client: Awaited<ReturnType<typeof createSeismicClient>>,
+  client: ShieldedWalletClient<Transport, Chain>,
   address: Address,
-) {
-  // Type assertion needed: seismic-viem's generic constraints on
-  // ShieldedWalletClient are overly strict for getShieldedContract.
-  // The runtime behavior is correct.
+): ShieldedContract<Transport, Address, typeof TestSRC20Abi, Chain> {
   return getShieldedContract({
     abi: TestSRC20Abi,
     address,
-    client: client as any,
+    client,
   });
 }
 
-/**
- * Read the caller's own balance via signed read.
- */
 export async function readBalance(
   client: Awaited<ReturnType<typeof createSeismicClient>>,
   contractAddress: Address,

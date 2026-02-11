@@ -19,6 +19,12 @@ import {
   submitShieldedTransaction,
   waitForReceipt,
 } from "@/poc/seismic/transaction";
+import {
+  fetchTransaction,
+  decryptTransactionInput,
+  extractFunctionSelector,
+  extractCalldataParams,
+} from "@/poc/seismic/transaction-decryption";
 
 // Demo configuration
 const DEMO_RECIPIENT = "0xe01D202671F158524b2f0A763eFE34892639Acf9" as Address;
@@ -102,7 +108,7 @@ async function main() {
       seismicConfig,
       derivedKey1,
     );
-    log("Seismic client created with Fireblocks-derived encryption key");
+    log("Client created with Fireblocks-derived encryption key");
 
     // Step 6: Test encrypt/decrypt roundtrip
     step(6, "Test encrypt/decrypt roundtrip");
@@ -135,12 +141,38 @@ async function main() {
     log(`Final balance: ${finalBalance.toString()}`);
     log(`Delta: ${delta.toString()} (expected: ${DEMO_AMOUNT.toString()})`);
 
+    // Step 9: Decrypt and verify transaction calldata
+    step(9, "Decrypt and verify transaction calldata");
+
+    // Fetch the submitted transaction from the network
+    const transaction = await fetchTransaction(fbPoweredClient, txHash);
+    log(`Transaction found in block ${transaction.blockNumber}`);
+
+    // Decrypt the transaction calldata using the Fireblocks-derived encryption key.
+    const decryptedCalldata = await decryptTransactionInput(
+      fbPoweredClient,
+      derivedKey1,
+      transaction,
+    );
+
+    // Verify the decrypted calldata matches the original
+    const originalCalldata = buildTransferCalldata(DEMO_RECIPIENT, DEMO_AMOUNT);
+
+    if (decryptedCalldata.toLowerCase() !== originalCalldata.toLowerCase()) {
+      throw new Error(
+        "Calldata decryption verification failed - mismatch detected",
+      );
+    }
+
+    log("Calldata decryption successful - verified match with original");
+
     // Summary
     header("Demo Complete - Results Summary");
     log("[PASS] Signature caching");
     log("[PASS] Deterministic key derivation");
     log("[PASS] Encrypt/decrypt roundtrip");
     log("[PASS] Shielded transaction");
+    log("[PASS] Transaction calldata decryption");
     log("");
     log("All core checks passed.");
   } catch (error) {
