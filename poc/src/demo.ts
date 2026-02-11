@@ -1,4 +1,4 @@
-import { type Address } from "viem";
+import { type Address, bytesToHex } from "viem";
 import {
   loadFireblocksConfig,
   createFireblocksClient,
@@ -21,9 +21,9 @@ import {
 } from "@/poc/seismic/transaction";
 import {
   fetchTransaction,
-  extractEncryptedCalldata,
-  decryptCalldataParameter,
-  reconstructPlaintextCalldata,
+  decryptTransactionInput,
+  extractFunctionSelector,
+  extractCalldataParams,
 } from "@/poc/seismic/transaction-decryption";
 
 // Demo configuration
@@ -104,6 +104,25 @@ async function main() {
 
     // Step 5: Create Fireblocks-powered Seismic client
     step(5, "Create Seismic client with Fireblocks encryption key");
+    log(`Using encryptionSk: ${derivedKey1}`);
+    
+    // Test: What AES key would be generated from this encryptionSk?
+    const { generateAesKey, sharedSecretPoint, sharedKeyFromPoint, deriveAesKey } = await import("seismic-viem");
+    const NETWORK_TEE_PK = "028e76821eb4d77fd30223ca971c49738eb5b5b71eabe93f96b348fdce788ae5a0";
+    
+    // Trace each step of key derivation
+    const sharedSecretBytes = sharedSecretPoint({
+      privateKey: derivedKey1,
+      networkPublicKey: NETWORK_TEE_PK,
+    });
+    log(`Shared secret point: ${bytesToHex(sharedSecretBytes)}`);
+    
+    const sharedKey = sharedKeyFromPoint(sharedSecretBytes);
+    log(`Shared key (compressed): ${sharedKey}`);
+    
+    const testAesKey = deriveAesKey(sharedKey);
+    log(`Test AES key: ${testAesKey}`);
+    
     const fbPoweredClient = await createSeismicClient(
       seismicConfig,
       derivedKey1,
@@ -148,42 +167,43 @@ async function main() {
     log(`Fetching transaction: ${txHash}`);
     const transaction = await fetchTransaction(fbPoweredClient, txHash);
     log(`Transaction found in block ${transaction.blockNumber}`);
-    log(`\nFull transaction object:`);
-    console.log(JSON.stringify(transaction, (key, value) =>
-      typeof value === 'bigint' ? value.toString() : value
-    , 2));
-    log(`\nRaw transaction input: ${transaction.input}`);
-    log(`Input length: ${transaction.input.length} chars (${(transaction.input.length - 2) / 2} bytes)`);
-
-    // 2. Extract encrypted portions from calldata
-    const { selector, unencryptedParams, encryptedData } =
-      extractEncryptedCalldata(transaction.input);
-
-    log(`Function selector: ${selector}`);
-    log(`Unencrypted params (address): ${unencryptedParams}`);
-    log(
-      `Encrypted data length: ${encryptedData.length} chars (${(encryptedData.length - 2) / 2} bytes)`,
-    );
-
-    // 3. Decrypt the suint256 parameter using the derived AES key
-    // The key was derived via: aes_key = HKDF(ECDH(encryptionSk, network_tee_pubkey))
-    const decryptedAmount = await decryptCalldataParameter(
-      derivedKey1,
-      encryptedData,
-    );
-
-    log(`Decrypted amount: ${decryptedAmount.toString()}`);
-
-    // 4. Verify decrypted amount matches expected
-    if (decryptedAmount !== DEMO_AMOUNT) {
-      throw new Error(
-        `Amount mismatch: expected ${DEMO_AMOUNT}, got ${decryptedAmount}`,
-      );
-    }
+    log(`Encrypted input: ${transaction.input}`);
+    log(`Encryption nonce: ${transaction.encryptionNonce}`);
+    log(`Encryption pubkey: ${transaction.encryptionPubkey}`);
     
-    log("✓ Calldata decryption successful!");
-    log(`Expected amount: ${DEMO_AMOUNT.toString()}`);
-    log(`Decrypted matches: ${decryptedAmount === DEMO_AMOUNT}`);
+    // Debug: Verify the encryption key
+    log(`\nDerived encryption key (derivedKey1): ${derivedKey1}`);
+
+    // 2. Decrypt the entire transaction input using ECDH + HKDF + AES-GCM with AAD
+    // The encryption uses: AES-GCM(HKDF(ECDH(encryptionSk, tx.encryptionPubkey)), nonce, input, AAD)
+    // where AAD = encode(sender, chain_id, tx_nonce, to, value, encryption_pubkey, encryption_nonce, message_version)
+    log(`\n=== Starting decryption ===`);
+    const decryptedCalldata = await decryptTransactionInput(
+      derivedKey1,
+      transaction,
+      true, // Enable debug mode
+    );
+
+    log(`Decrypted calldata: ${decryptedCalldata}`);
+
+    // 3. Extract and verify the function selector and parameters
+    const selector = extractFunctionSelector(decryptedCalldata);
+    const params = extractCalldataParams(decryptedCalldata);
+    
+    log(`Function selector: ${selector}`);
+    log(`Parameters: ${params}`);
+
+    // 4. Compare with original plaintext calldata
+    const originalCalldata = buildTransferCalldata(DEMO_RECIPIENT, DEMO_AMOUNT);
+    
+    log(`Original calldata:  ${originalCalldata}`);
+    log(`Decrypted calldata: ${decryptedCalldata}`);
+
+    if (decryptedCalldata.toLowerCase() === originalCalldata.toLowerCase()) {
+      log("✓ Calldata decryption successful - perfect match!");
+    } else {
+      throw new Error("Calldata decryption failed - mismatch!");
+    }
 
     // Summary
     header("Demo Complete - Results Summary");
