@@ -12,8 +12,6 @@ Fireblocks Vault → Raw Signature → SHA-256 → Encryption Key
                               Deterministic suint256 Encryption
                                       ↓
                               Shielded Transaction Submission
-                                      ↓
-                              Historical Decryption (AES Precompile)
 ```
 
 ## Prerequisites
@@ -145,16 +143,6 @@ The demo performs 9 checks to validate the Fireblocks × Seismic integration:
 - Reads the new encrypted balance and calculates the delta
 - Verifies the delta matches the transfer amount (1 ETH)
 
-### [Step 9: Historical Transaction Decryption](poc/src/demo.ts#L125-L138)
-
-**What it does**: Retrieves and decrypts the historical transaction to verify the original calldata.
-
-**Under the hood**:
-- [`decryptHistoricalTransaction()`](poc/src/seismic/historical-decrypt.ts#L15-L69) extracts the encryption nonce from transaction metadata
-- Derives the AES key using [ECDH + HKDF](poc/src/seismic/historical-decrypt.ts#L45-L49) with Seismic's TEE public key
-- Calls the [AES precompile at address `0x66`](poc/src/seismic/historical-decrypt.ts#L78-L105) to decrypt the calldata
-- Verifies the core function call matches the original `transfer(address,suint256)` parameters
-
 ## Project Structure
 
 ```
@@ -169,8 +157,7 @@ poc/
 │   └── seismic/
 │       ├── client.ts               # Seismic wallet client with encryption key
 │       ├── calldata.ts             # transfer(address,suint256) calldata construction
-│       ├── transaction.ts          # Shielded transaction submission
-│       └── historical-decrypt.ts   # Historical transaction decryption
+│       └── transaction.ts          # Shielded transaction submission
 ├── tsconfig.json                   # TypeScript config with @/poc/* path aliases
 └── package.json                    # Dependencies and scripts
 
@@ -205,7 +192,6 @@ When successful, the demo will show:
   [PASS] Deterministic key derivation
   [PASS] Encrypt/decrypt roundtrip
   [PASS] Shielded transaction
-  [PASS] Historical decryption
   
   All core checks passed.
 ```

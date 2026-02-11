@@ -19,7 +19,6 @@ import {
   submitShieldedTransaction,
   waitForReceipt,
 } from "@/poc/seismic/transaction";
-import { decryptHistoricalTransaction } from "@/poc/seismic/historical-decrypt";
 
 // Demo configuration
 const DEMO_RECIPIENT = "0xe01D202671F158524b2f0A763eFE34892639Acf9" as Address;
@@ -136,34 +135,12 @@ async function main() {
     log(`Final balance: ${finalBalance.toString()}`);
     log(`Delta: ${delta.toString()} (expected: ${DEMO_AMOUNT.toString()})`);
 
-    // Step 9: Historical transaction decryption
-    step(9, "Historical transaction decryption");
-    const decryptionResult = await decryptHistoricalTransaction(
-      fbPoweredClient,
-      txHash,
-      derivedKey1,
-      seismicConfig.deployerPrivateKey,
-      calldata,
-    );
-
-    if (decryptionResult.success) {
-      log("Historical decryption successful");
-      log("Core function call matches original plaintext");
-    } else {
-      log("Historical decryption failed (non-critical)");
-    }
-
     // Summary
     header("Demo Complete - Results Summary");
     log("[PASS] Signature caching");
     log("[PASS] Deterministic key derivation");
     log("[PASS] Encrypt/decrypt roundtrip");
     log("[PASS] Shielded transaction");
-    log(
-      decryptionResult.success
-        ? "[PASS] Historical decryption"
-        : "[INFO] Historical decryption (partial)",
-    );
     log("");
     log("All core checks passed.");
   } catch (error) {
