@@ -3,7 +3,7 @@ import {
   loadFireblocksConfig,
   createFireblocksClient,
 } from "@/poc/fireblocks/client";
-import { validateSignatureCaching } from "@/poc/fireblocks/signer";
+import { validateSignatureCaching, getVaultAddress } from "@/poc/fireblocks/signer";
 import {
   deriveKeyFromSignature,
   encrypt,
@@ -13,6 +13,8 @@ import {
   loadSeismicConfig,
   createSeismicClient,
   readBalance,
+  readBalanceSigned,
+  getTokenContract,
 } from "@/poc/seismic/client";
 import { buildTransferCalldata } from "@/poc/seismic/calldata";
 import {
@@ -78,6 +80,52 @@ async function main() {
     step(2, "Read initial SRC20 balance");
     const initialBalance = await readBalance(walletClient, contractAddress);
     log(`Balance: ${initialBalance.toString()}`);
+
+    // Step 2b: Read balance via balanceOfSigned with Fireblocks MPC signature
+    step(2.5, "Read balance via balanceOfSigned (Fireblocks MPC)");
+
+    // Derive the Fireblocks vault's ETH address from its MPC public key
+    const vaultAddress = await getVaultAddress(
+      fireblocksClient,
+      fireblocksConfig.vaultAccountId,
+    );
+    log(`Fireblocks vault address: ${vaultAddress}`);
+
+    // Mint tokens to the vault so it has a balance to read
+    const VAULT_MINT_AMOUNT = BigInt("5000000000000000000"); // 5 tokens
+    const tokenContract = getTokenContract(walletClient, contractAddress);
+
+    // Read vault balance before mint to compute expected post-mint balance
+    const vaultBalanceBefore = await readBalanceSigned(
+      fireblocksClient,
+      fireblocksConfig.vaultAccountId,
+      walletClient,
+      contractAddress,
+      vaultAddress,
+    );
+    log(`Vault balance before mint: ${vaultBalanceBefore.toString()}`);
+
+    const mintTx = await tokenContract.write.mint([vaultAddress, VAULT_MINT_AMOUNT]);
+    await waitForReceipt(walletClient, mintTx);
+    log(`Minted ${VAULT_MINT_AMOUNT.toString()} to vault`);
+
+    // Read the vault's balance using balanceOfSigned with Fireblocks MPC signature
+    const signedBalance = await readBalanceSigned(
+      fireblocksClient,
+      fireblocksConfig.vaultAccountId,
+      walletClient,
+      contractAddress,
+      vaultAddress,
+    );
+    log(`Vault balance after mint: ${signedBalance.toString()}`);
+
+    const expectedBalance = vaultBalanceBefore + VAULT_MINT_AMOUNT;
+    if (signedBalance !== expectedBalance) {
+      throw new Error(
+        `Balance mismatch: expected=${expectedBalance}, balanceOfSigned=${signedBalance}`,
+      );
+    }
+    log("balanceOfSigned verified - MPC signature + balance delta correct");
 
     // Step 3: Validate Fireblocks signature caching
     step(3, "Validate Fireblocks signature caching");
@@ -168,6 +216,7 @@ async function main() {
 
     // Summary
     header("Demo Complete - Results Summary");
+    log("[PASS] balanceOfSigned (Fireblocks MPC)");
     log("[PASS] Signature caching");
     log("[PASS] Deterministic key derivation");
     log("[PASS] Encrypt/decrypt roundtrip");
@@ -177,7 +226,11 @@ async function main() {
     log("All core checks passed.");
   } catch (error) {
     header("Demo Failed");
-    log(`Error: ${error}`);
+    const err = error as any;
+    log(`Error: ${err?.message ?? err?.body ?? err?.statusText ?? String(error)}`);
+    if (err?.response?.data) log(`Response: ${String(err.response.data)}`);
+    if (err?.body) log(`Body: ${String(err.body)}`);
+    console.error(error);
     process.exit(1);
   }
 }

@@ -1,4 +1,6 @@
 import { Fireblocks, PeerType, TransactionOperation } from "@fireblocks/ts-sdk";
+import { type Address, keccak256, type Hex } from "viem";
+import { secp256k1 } from "@noble/curves/secp256k1";
 import { pollTransaction } from "@/poc/fireblocks/client";
 
 export interface RawSignatureResult {
@@ -27,6 +29,7 @@ export async function signRawMessage(
   messageHex: string,
   vaultAccountId: string,
   note?: string,
+  assetId: string = "BTC_TEST",
 ): Promise<RawSignatureResult> {
   // Strip 0x prefix if present
   const content = messageHex.startsWith("0x")
@@ -41,7 +44,7 @@ export async function signRawMessage(
 
   const { data: tx } = await client.transactions.createTransaction({
     transactionRequest: {
-      assetId: "BTC_TEST",
+      assetId,
       note: note ?? "Fireblocks signature caching POC",
       source: {
         type: PeerType.VaultAccount,
@@ -114,4 +117,35 @@ export async function validateSignatureCaching(
   const identical = first.fullSig === second.fullSig;
 
   return { first, second, identical };
+}
+
+/**
+ * Derives the ETH address from a Fireblocks vault by signing a dummy message
+ * and recovering the address from the returned public key.
+ *
+ * Fireblocks returns a compressed secp256k1 public key (33 bytes).
+ * We decompress it to get the uncompressed key (64 bytes, no 04 prefix),
+ * then ETH address = last 20 bytes of keccak256(uncompressed key).
+ */
+export async function getVaultAddress(
+  client: Fireblocks,
+  vaultAccountId: string,
+): Promise<Address> {
+  // Sign a dummy message to get the public key
+  const dummyHash = keccak256("0x00" as Hex);
+  const result = await signRawMessage(client, dummyHash, vaultAccountId, "Get vault address");
+
+  const pubKeyHex = result.publicKey.replace(/^0x/, "");
+
+  // Decompress the public key using secp256k1
+  // ProjectivePoint.fromHex handles both compressed (33 bytes) and uncompressed (65 bytes)
+  const point = secp256k1.ProjectivePoint.fromHex(pubKeyHex);
+  // Get uncompressed form (65 bytes with 04 prefix), strip the 04 prefix for keccak
+  const uncompressedHex = point.toHex(false).slice(2); // remove '04' prefix
+
+  // ETH address = last 20 bytes of keccak256(uncompressed public key without 04 prefix)
+  const hash = keccak256(`0x${uncompressedHex}` as Hex);
+  const address = `0x${hash.slice(-40)}` as Address;
+
+  return address;
 }

@@ -8,7 +8,9 @@
   ],
   "scripts": {
     "src20:demo": "bun run poc/src/demo.ts",
+    "src20:demo-multi-token": "bun run poc/src/demo-multi-token.ts",
     "src20:deploy": "cd contracts && ./script/deploy.sh",
+    "deploy:multi-token": "cd contracts && ./script/deploy-batched-read.sh",
     "test": "bun test"
   },
   "devDependencies": {

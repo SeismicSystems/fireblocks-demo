@@ -1,4 +1,4 @@
-import { http, type Chain, type Address, type Hex, type Transport } from "viem";
+import { http, type Chain, type Address, type Hex, type Transport, keccak256, encodePacked, concat, toHex, pad } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   createShieldedWalletClient,
@@ -10,8 +10,10 @@ import {
 } from "seismic-viem";
 import { readFileSync } from "fs";
 import { resolve } from "path";
+import type { Fireblocks } from "@fireblocks/ts-sdk";
 
 import { TestSRC20Abi } from "@/poc/seismic/abi";
+import { signRawMessage } from "@/poc/fireblocks/signer";
 
 export interface SeismicConfig {
   rpcUrl: string;
@@ -93,5 +95,62 @@ export async function readBalance(
     abi: TestSRC20Abi,
     functionName: "balance",
   });
+  return result as bigint;
+}
+
+/**
+ * Reads a balance using the SRC20 balanceOfSigned function with a Fireblocks MPC signature.
+ *
+ * The signature authorizes the balance read on-chain via ecrecover — no raw private key needed.
+ * The authorization is token-agnostic and reusable for 1 hour.
+ */
+export async function readBalanceSigned(
+  fireblocksClient: Fireblocks,
+  vaultAccountId: string,
+  walletClient: ShieldedWalletClient<Transport, Chain>,
+  contractAddress: Address,
+  ownerAddress: Address,
+): Promise<bigint> {
+  const expiry = BigInt(Math.floor(Date.now() / 1000) + 3600);
+
+  // Construct the message hash exactly as the contract does
+  const messageHash = keccak256(
+    encodePacked(
+      ["string", "address", "uint256"],
+      ["SRC20_BALANCE_READ", ownerAddress, expiry],
+    ),
+  );
+
+  // Wrap with EIP-191 personal sign prefix (contract does ecrecover on this)
+  const ethSignedHash = keccak256(
+    encodePacked(
+      ["string", "bytes32"],
+      ["\x19Ethereum Signed Message:\n32", messageHash],
+    ),
+  );
+
+  // Sign via Fireblocks MPC
+  const sig = await signRawMessage(
+    fireblocksClient,
+    ethSignedHash,
+    vaultAccountId,
+    "SRC20 balanceOfSigned authorization",
+  );
+
+  // Pack r + s + v into a 65-byte signature
+  // Fireblocks returns v as 0/1; ecrecover expects 27/28
+  const v = sig.v < 27 ? sig.v + 27 : sig.v;
+  const rHex = pad((`0x${sig.r.replace(/^0x/, "")}`) as Hex, { size: 32 });
+  const sHex = pad((`0x${sig.s.replace(/^0x/, "")}`) as Hex, { size: 32 });
+  const signature = concat([rHex, sHex, toHex(v, { size: 1 })]);
+
+  // Plain eth_call — no signed read or encryption needed
+  const result = await walletClient.readContract({
+    address: contractAddress,
+    abi: TestSRC20Abi,
+    functionName: "balanceOfSigned",
+    args: [ownerAddress, expiry, signature],
+  });
+
   return result as bigint;
 }
