@@ -146,7 +146,7 @@ abstract contract SRC20 {
                                 ),
                                 owner,
                                 spender,
-                                value,
+                                uint256(value),
                                 nonces[owner]++,
                                 deadline
                             )
@@ -189,7 +189,7 @@ abstract contract SRC20 {
     function emitTransferEncrypted(address from, address to, suint256 amount) internal {
         // Emit to intelligence providers
         (bytes32[] memory hashes, bytes[] memory encryptedData) =
-            intelligence.encryptToProviders(abi.encodePacked(amount));
+            intelligence.encryptToProviders(abi.encodePacked(uint256(amount)));
         for (uint256 i = 0; i < encryptedData.length; i++) {
             emit Transfer(from, to, hashes[i], encryptedData[i]);
         }
@@ -197,7 +197,7 @@ abstract contract SRC20 {
         // Emit to recipient if they have a registered key
         if (directory.checkHasKey(to)) {
             bytes32 recipientKeyHash = directory.keyHash(to);
-            bytes memory recipientEncrypted = directory.encrypt(to, abi.encodePacked(amount));
+            bytes memory recipientEncrypted = directory.encrypt(to, abi.encodePacked(uint256(amount)));
             emit Transfer(from, to, recipientKeyHash, recipientEncrypted);
         } else {
             // Emit with zero hash and empty data if recipient has no key
@@ -208,7 +208,7 @@ abstract contract SRC20 {
     function emitApprovalEncrypted(address owner, address spender, suint256 amount) internal {
         // Emit to intelligence providers
         (bytes32[] memory hashes, bytes[] memory encryptedData) =
-            intelligence.encryptToProviders(abi.encodePacked(amount));
+            intelligence.encryptToProviders(abi.encodePacked(uint256(amount)));
         for (uint256 i = 0; i < encryptedData.length; i++) {
             emit Approval(owner, spender, hashes[i], encryptedData[i]);
         }
@@ -216,12 +216,45 @@ abstract contract SRC20 {
         // Emit to spender if they have a registered key
         if (directory.checkHasKey(spender)) {
             bytes32 spenderKeyHash = directory.keyHash(spender);
-            bytes memory spenderEncrypted = directory.encrypt(spender, abi.encodePacked(amount));
+            bytes memory spenderEncrypted = directory.encrypt(spender, abi.encodePacked(uint256(amount)));
             emit Approval(owner, spender, spenderKeyHash, spenderEncrypted);
         } else {
             // Emit with zero hash and empty data if spender has no key
             emit Approval(owner, spender, bytes32(0), bytes(""));
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        SIGNED BALANCE READ
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Read any user's balance with their signature authorization.
+    /// @dev Signature is token-agnostic: uses personal sign over ("SRC20_BALANCE_READ", owner, expiry).
+    function balanceOfSigned(address owner, uint256 expiry, bytes calldata signature)
+        external
+        view
+        virtual
+        returns (uint256)
+    {
+        require(block.timestamp <= expiry, "signature expired");
+        require(signature.length == 65, "invalid signature length");
+
+        bytes32 messageHash = keccak256(abi.encodePacked("SRC20_BALANCE_READ", owner, expiry));
+        bytes32 ethSignedHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash));
+
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        assembly {
+            r := calldataload(signature.offset)
+            s := calldataload(add(signature.offset, 32))
+            v := byte(0, calldataload(add(signature.offset, 64)))
+        }
+
+        address signer = ecrecover(ethSignedHash, v, r, s);
+        require(signer != address(0) && signer == owner, "invalid signature");
+
+        return uint256(balances[owner]);
     }
 
     /*//////////////////////////////////////////////////////////////
