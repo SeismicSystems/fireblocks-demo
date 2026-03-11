@@ -98,4 +98,15 @@ export const TestSRC20Abi = [
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
+  {
+    type: "function",
+    name: "balanceOfSigned",
+    inputs: [
+      { name: "owner", type: "address", internalType: "address" },
+      { name: "expiry", type: "uint256", internalType: "uint256" },
+      { name: "signature", type: "bytes", internalType: "bytes" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
 ] as const satisfies Abi;

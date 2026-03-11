@@ -13,6 +13,7 @@ import {
   loadSeismicConfig,
   createSeismicClient,
   readBalance,
+  readBalanceSigned,
 } from "@/poc/seismic/client";
 import { buildTransferCalldata } from "@/poc/seismic/calldata";
 import {
@@ -78,6 +79,23 @@ async function main() {
     step(2, "Read initial SRC20 balance");
     const initialBalance = await readBalance(walletClient, contractAddress);
     log(`Balance: ${initialBalance.toString()}`);
+
+    // Step 2b: Read balance via balanceOfSigned with Fireblocks MPC signature
+    step(2.5, "Read balance via balanceOfSigned (Fireblocks MPC)");
+    const signedBalance = await readBalanceSigned(
+      fireblocksClient,
+      fireblocksConfig.vaultAccountId,
+      walletClient,
+      contractAddress,
+    );
+    log(`Signed balance: ${signedBalance.toString()}`);
+
+    if (signedBalance !== initialBalance) {
+      throw new Error(
+        `Balance mismatch: readBalance=${initialBalance}, balanceOfSigned=${signedBalance}`,
+      );
+    }
+    log("balanceOfSigned matches readBalance - MPC signature verified");
 
     // Step 3: Validate Fireblocks signature caching
     step(3, "Validate Fireblocks signature caching");
@@ -168,6 +186,7 @@ async function main() {
 
     // Summary
     header("Demo Complete - Results Summary");
+    log("[PASS] balanceOfSigned (Fireblocks MPC)");
     log("[PASS] Signature caching");
     log("[PASS] Deterministic key derivation");
     log("[PASS] Encrypt/decrypt roundtrip");
