@@ -67,7 +67,7 @@ DEMO_TRANSFER_AMOUNT=1000000000000000000
 ### 4. Deploy Contract
 
 ```bash
-bun run deploy:src20
+bun run src20:deploy
 ```
 
 Deploys a test SRC20 token and saves the address to `contracts/out/deploy.json`.
