@@ -1,4 +1,4 @@
-import { http, type Chain, type Address, type Hex, type Transport, keccak256, encodePacked, concat, toHex } from "viem";
+import { http, type Chain, type Address, type Hex, type Transport, keccak256, encodePacked, concat, toHex, pad } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   createShieldedWalletClient,
@@ -109,8 +109,8 @@ export async function readBalanceSigned(
   vaultAccountId: string,
   walletClient: ShieldedWalletClient<Transport, Chain>,
   contractAddress: Address,
+  ownerAddress: Address,
 ): Promise<bigint> {
-  const ownerAddress = walletClient.account!.address;
   const expiry = BigInt(Math.floor(Date.now() / 1000) + 3600);
 
   // Construct the message hash exactly as the contract does
@@ -138,9 +138,11 @@ export async function readBalanceSigned(
   );
 
   // Pack r + s + v into a 65-byte signature
-  const r = sig.r.startsWith("0x") ? sig.r : `0x${sig.r}`;
-  const s = sig.s.startsWith("0x") ? sig.s : `0x${sig.s}`;
-  const signature = concat([r as Hex, s as Hex, toHex(sig.v, { size: 1 })]);
+  // Fireblocks returns v as 0/1; ecrecover expects 27/28
+  const v = sig.v < 27 ? sig.v + 27 : sig.v;
+  const rHex = pad((`0x${sig.r.replace(/^0x/, "")}`) as Hex, { size: 32 });
+  const sHex = pad((`0x${sig.s.replace(/^0x/, "")}`) as Hex, { size: 32 });
+  const signature = concat([rHex, sHex, toHex(v, { size: 1 })]);
 
   // Plain eth_call — no signed read or encryption needed
   const result = await walletClient.readContract({
