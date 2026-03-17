@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.13;
 
-import {SRC20} from "./SRC20.sol";
+import {SRC20} from "seismic-std-lib/SRC20.sol";
 
 /// @notice Test SRC20 token with public mint for demo purposes.
 contract TestSRC20 is SRC20 {

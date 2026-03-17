@@ -64,7 +64,14 @@ DEMO_TRANSFER_AMOUNT=1000000000000000000
 2. Download and save private key as `fireblocks-secret.key`
 3. Note your Vault Account ID (usually `0`)
 
-### 4. Deploy Contracts
+### 4. Install Soldeer Dependencies
+
+```bash
+cd contracts
+sforge soldeer install   # Install seismic-std-lib (required before build/test)
+```
+
+### 5. Deploy Contracts
 
 **Single-token demo** (TestSRC20):
 
@@ -78,7 +85,7 @@ bun run src20:deploy
 bun run deploy:multi-token
 ```
 
-### 5. Run Demos
+### 6. Run Demos
 
 **Single-token demo** — Fireblocks signature caching, key derivation, shielded transfers, balance reads:
 

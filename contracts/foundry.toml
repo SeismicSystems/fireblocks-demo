@@ -1,9 +1,16 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = ["lib"]
+libs = ["lib", "dependencies"]
 solc_version = "0.8.31"
 remappings = [
     "solmate/=lib/solmate/src/",
-    "forge-std/=lib/forge-std/src/"
+    "forge-std/=lib/forge-std/src/",
+    "seismic-std-lib/=dependencies/seismic-std-lib-0.1.1/"
 ]
+
+[dependencies]
+seismic-std-lib = "0.1.1"
+
+[soldeer]
+remappings_generate = false
