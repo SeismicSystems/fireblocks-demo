@@ -9,5 +9,8 @@ cache/
 # Docs
 docs/
 
+# Soldeer dependencies (restored via sforge soldeer install)
+dependencies/
+
 # Dotenv file
 .env

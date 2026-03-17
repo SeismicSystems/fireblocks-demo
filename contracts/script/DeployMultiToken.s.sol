@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {MockSRC20} from "../test/utils/mocks/MockSRC20.sol";
-import {SRC20Multicall} from "../src/SRC20Multicall.sol";
+import {MockSRC20} from "../utils/MockSRC20.sol";
+import {SRC20Multicall} from "seismic-std-lib/SRC20Multicall.sol";
 
 contract DeployMultiToken is Script {
     uint256 constant NUM_TOKENS = 50;
